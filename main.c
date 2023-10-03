@@ -1,8 +1,6 @@
 /*******************************************************************************************
 *
-*   
-*
-*   Copyright (c) 2023-2023 Gabriel S.
+*   2023-2023 Gabriel S.
 *
 ********************************************************************************************/
 
@@ -55,6 +53,8 @@ const int screenHeight = 450;//450
 int currentPlayer = 1;
 int player_1_score = 0;
 int player_2_score = 0;
+int gameover = 0;
+int debug = 0;
 
 
 int main(void)
@@ -85,9 +85,7 @@ int main(void)
     
     Vector2 mousePoint = { 0.0f, 0.0f };
     
-    InitWindow(screenWidth, screenHeight, "raylib [shapes] example - basic shapes drawing");
-
-    float rotation = 0.0f;
+    InitWindow(screenWidth, screenHeight, "Dots and boxes");
 
     SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
     //--------------------------------------------------------------------------------------
@@ -97,7 +95,6 @@ int main(void)
     {
         // Update
         //----------------------------------------------------------------------------------
-        rotation += 0.2f;
         mousePoint = GetMousePosition();
         Vector2 mouseOffsetPos;
         mouseOffsetPos.x = GetMousePosition().x - (screenWidth/5);
@@ -111,7 +108,7 @@ int main(void)
         BeginDrawing();
             ClearBackground(GRAY);
 
-            //DrawText("some basic shapes available on raylib", 20, 20, 20, RED);
+            //DrawText("Test text", 20, 20, 20, RED);
 
             // Circle shapes and lines
             //DrawCircle(screenWidth/5, 120, GRID_DISTANCE, DARKBLUE);
@@ -123,7 +120,7 @@ int main(void)
                 int *pos;
                 pos = mouse_pos_to_grid(mouseOffsetPos.x , mouseOffsetPos.y);
                 
-                DrawText(TextFormat("(%d, %d)", pos[0], pos[1]), mousePoint.x, mousePoint.y - 20, 5, BLACK);
+                (debug) ? (DrawText(TextFormat("(%d, %d)", pos[0], pos[1]), mousePoint.x, mousePoint.y - 20, 5, YELLOW)) : (0);
                 
                 if (is_mouse_in_grid(mouseOffsetPos.x, mouseOffsetPos.y, GRID_LENGTH)){
                     int side = check_clicked_side(mouseOffsetPos.x, mouseOffsetPos.y, mousePoint.x, mousePoint.y, arraySize);
@@ -154,6 +151,14 @@ int main(void)
                 }
             }
             
+            update_text(player_1_score, player_2_score, currentPlayer);
+            update_lines(array, arraySize);
+            
+            if (gameover == 1)
+            {
+                end_screen();
+            }
+            
             if (GuiButton((Rectangle){ 600, 50, 125, 30 }, "#75# RESET")) {
                 restart_game(array, arraySize, &player_1_score, &player_2_score, &currentPlayer);
             }
@@ -163,16 +168,21 @@ int main(void)
                 printf("SPACE: %d\n", 10123);
             }
             
-            update_text(player_1_score, player_2_score, currentPlayer);
-            update_lines(array, arraySize);
+            if (GuiButton((Rectangle){ screenWidth - 70, screenHeight - 30, 70, 30 }, "#140# DEBUG")) {
+                // (debug = 0) ? debug = 1 : debug = 0;
+                (debug == 0) ? (debug = 1) : (debug = 0);
+                printf("%d", debug);
+            }
+            
+            
         EndDrawing();
         //----------------------------------------------------------------------------------
     }
+    free(array);
     // De-Initialization
     //--------------------------------------------------------------------------------------
     CloseWindow();        // Close window and OpenGL context
     //--------------------------------------------------------------------------------------
-    free(array); 
     return 0;
 }
 
@@ -180,13 +190,13 @@ int main(void)
 int createGrid(int grid_size_x, int grid_size_y, int screenHeight, int screenWidth){
     for (int x = 0; x < GRID_LENGTH; x++){
         for (int y = 0; y < GRID_LENGTH; y++){
-            DrawCircle(x*GRID_DISTANCE + (screenWidth/5), y*GRID_DISTANCE + (screenHeight / 5), 5, RED);
-            
+            DrawCircle(x*GRID_DISTANCE + (screenWidth / 5), y*GRID_DISTANCE + (screenHeight / 5), 5, RED);
             //DrawCircle(x*GRID_DISTANCE, y*GRID_DISTANCE, 5, RED);
             // DEBUG text 
             int index = x + GRID_LENGTH*y;
-            DrawText(TextFormat("(%d %d), \n%d", x ,y, index), x*GRID_DISTANCE + (screenWidth/5), y*GRID_DISTANCE + (screenHeight / 5), 5, BLACK);
-        }
+            if (debug)
+                DrawText(TextFormat("(%d %d), \n%d", x ,y, index), x*GRID_DISTANCE + (screenWidth/5), y*GRID_DISTANCE + (screenHeight / 5), 5, BLACK);
+        }        
     }
     return 0;
 }
@@ -224,13 +234,13 @@ int * grid_to_pos(int mouse_pos_x, int mouse_pos_y, int length){
 }
 
 bool is_mouse_in_grid(int mouse_pos_x, int mouse_pos_y, int length){
-    //mouse_pos_x as offset
+    //mouse_pos_x has offset
     int *mouse_grid_pos;
     
     mouse_grid_pos = mouse_pos_to_grid(mouse_pos_x, mouse_pos_y);
     
     if (mouse_grid_pos[0] >= 0 && mouse_grid_pos[0] <= length-2 && mouse_grid_pos[1] >= 0 && mouse_grid_pos[1] <= length-2){
-        DrawText(TextFormat("x is in(%d, %d)", mouse_grid_pos[0], mouse_grid_pos[1]), 10, 30, 5, BLACK);
+        // DrawText(TextFormat("x is in(%d, %d)", mouse_grid_pos[0], mouse_grid_pos[1]), 10, 30, 5, BLACK);
         return true;
     }
     else{
@@ -254,8 +264,8 @@ int check_clicked_side(int mouse_pos_x, int mouse_pos_y, int global_mouse_x, int
     int *grid_global_pos;
     grid_global_pos = grid_to_pos(pos_from_index[0], pos_from_index[1], length);
     
-    /*stuff i used to debug
-    DrawCircle(grid_global_pos[0], grid_global_pos[1], 5, BLUE);
+    /* stuff i used to debug
+    DrawCircle(grid_global_pos[0], grid_global_pos[1], 10, BLUE);
     DrawText(TextFormat("index(%d, %d)", pos_from_index[0], pos_from_index[1]), 10, 0, 24, RED);
     DrawText(TextFormat("grid_global_pos(%d, %d)", grid_global_pos[0], grid_global_pos[1]), 10, 24, 24, RED);
     DrawText(TextFormat("abs(%d, %d)", abs(mouse_pos_x - grid_global_pos[0]), abs(mouse_pos_y - grid_global_pos[1])), 300, 24, 24, RED);
@@ -269,19 +279,19 @@ int check_clicked_side(int mouse_pos_x, int mouse_pos_y, int global_mouse_x, int
     
     
     if (corner_distance_x < 10 && corner_distance_y > 5 && corner_distance_y < 25){
-        DrawText("LEFT", 700, 250, 24, RED);
+        (debug == 1) ? (DrawText("LEFT", 700, 250, 24, RED)) : 0;
         return 3;
     }
     else if (corner_distance_x > 20 && corner_distance_y > 5 && corner_distance_y < 25){
-        DrawText("RIGHT", 700, 250, 24, RED);
+        (debug == 1) ? (DrawText("RIGHT", 700, 250, 24, RED)) : 0;
         return 1;
     }
     else if (corner_distance_y < 10 && corner_distance_x > 10 && corner_distance_x < 25){
-        DrawText("UP", 700, 250, 24, RED);
+        (debug == 1) ? (DrawText("UP", 700, 250, 24, RED)) : 0;
         return 0;
     }
     else if (corner_distance_y > 20 && corner_distance_x > 10 && corner_distance_x < 25){
-        DrawText("DOWN", 700, 250, 24, RED);
+        (debug == 1) ? (DrawText("DOWN", 700, 250, 24, RED)) : 0;
         return 2;
     }
     return 4;
@@ -535,6 +545,9 @@ bool checkClosedBox(int position_x, int position_y, int length, struct box array
         player_2_score += hasSquare_2;
     }
     
+    if (player_1_score + player_2_score == (GRID_LENGTH - 1) * (GRID_LENGTH - 1))
+        gameover = 1;
+    
     if (hasSquare_1 == true || hasSquare_2 == true){
         return true;
     }
@@ -546,12 +559,12 @@ bool checkClosedBox(int position_x, int position_y, int length, struct box array
 void create_square(int position_x, int position_y, int length, int player){
     int *GRID2POS;
     GRID2POS = grid_to_pos(position_x, position_y, length);
-    (player == 1) ? DrawRectangle(GRID2POS[0] + 2, GRID2POS[1] + 3, GRID_DISTANCE - 5, GRID_DISTANCE - 5, BLUE) : DrawRectangle(GRID2POS[0] + 2, GRID2POS[1] + 3, GRID_DISTANCE - 5, GRID_DISTANCE - 5, GREEN);
+    (player == 1) ? DrawRectangle(GRID2POS[0] + 2, GRID2POS[1] + 2, GRID_DISTANCE - 5, GRID_DISTANCE - 4, BLUE) : DrawRectangle(GRID2POS[0] + 2, GRID2POS[1] + 2, GRID_DISTANCE - 5, GRID_DISTANCE - 4, GREEN);
 }
 
 void update_text(int player_1_s, int player_2_s, int current_player){
     if (current_player == 1){
-        DrawText(TextFormat("Player 1: %d", player_1_s), 10, 10, 30, GREEN);
+        DrawText(TextFormat("Player 1: %d", player_1_s), 10, 10, 30, BLUE);
         DrawText(TextFormat("Player 2: %d", player_2_s), 10, 35, 30, BLACK);
     }
     else{
@@ -587,6 +600,7 @@ void restart_game(struct box array[], int arraySize, int *score_1, int *score_2,
     *score_1 = 0;
     *score_2 = 0;
     *curPlayer = 1;
+    gameover = 0;
     
     for (int i = 0; i < arraySize; i++){
         array[i].used[0] = 0;//up
@@ -605,9 +619,9 @@ void restart_game(struct box array[], int arraySize, int *score_1, int *score_2,
 void end_screen(){
     DrawRectangle(0, 0, 10000, 10000, BLACK);
     if (player_1_score > player_2_score)
-        DrawText("player 1 WINS", screenHeight / 2, screenWidth / 4, 52, GREEN);
+        DrawText("player 1 WINS", screenHeight / 2, screenWidth / 4, 52, BLUE);
     else
-        DrawText("player 2 WINS", screenHeight / 2, screenWidth / 4, 52, BLUE);
+        DrawText("player 2 WINS", screenHeight / 2, screenWidth / 4, 52, GREEN);
 }
 
 
